@@ -1,5 +1,7 @@
 #include "common.h"
 
+#define __USE_BSD
+
 #include <stdio.h>
 #include <time.h>
 #include <sys/types.h>
@@ -9,6 +11,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <alloca.h>
 #include <alsa/asoundlib.h>
 
 #define MIN_WRITE_SIZE 200
