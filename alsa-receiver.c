@@ -1,6 +1,7 @@
 #include "common.h"
 
 #define __USE_BSD
+#define _POSIX_C_SOURCE 199309L
 
 #include <stdio.h>
 #include <time.h>
