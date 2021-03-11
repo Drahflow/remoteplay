@@ -1,7 +1,7 @@
 all: pulse-sender pulse-receiver alsa-receiver
 
 pulse-%: pulse-%.c common.h
-	gcc -W -Wall -Wextra -pedantic -Werror -O4 -o $@ $< -lpulse
+	gcc -std=c11 -W -Wall -Wextra -pedantic -Werror -O4 -o $@ $< -lpulse
 
 alsa-%: alsa-%.c common.h
-	gcc -W -Wall -Wextra -pedantic -Werror -O4 -o $@ $< -lasound
+	gcc -std=c11 -W -Wall -Wextra -pedantic -Werror -O4 -o $@ $< -lasound
