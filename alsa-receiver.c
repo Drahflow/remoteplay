@@ -2,6 +2,7 @@
 
 #define __USE_BSD
 #define __USE_POSIX199309
+#define _POSIX_C_SOURCE
 
 #include <stdio.h>
 #include <time.h>
