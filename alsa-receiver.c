@@ -312,10 +312,10 @@ void writeAudio() {
   }
 
   if(samplesTooMuch > 1) {
-    --requested;
+    ++requested;
     --samplesTooMuch;
   } else if(samplesTooMuch < -1) {
-    ++requested;
+    --requested;
     ++samplesTooMuch;
   }
 
@@ -326,7 +326,7 @@ void writeAudio() {
   failureSound(audioBuffer + sizeof(audioBuffer) - requested, requested);
   senderOffset += requested * 4;
 
-  samplesTooMuch += 44100.0 / sampleRate * requested - requested;
+  samplesTooMuch += sampleRate / 44100 * requested - requested;
   fprintf(stderr, "Sample error: %f (rate %f)\n", samplesTooMuch, sampleRate);
 
   // printf("Played %lld samples.\n", (long long int)requested);
