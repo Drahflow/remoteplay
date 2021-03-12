@@ -43,7 +43,6 @@ char audioBuffer[32000];
 char receiveBuffer[8000];
 uint64_t receivePos = 0;
 
-int streamReady = 0;
 int beepOnFailure = 0;
 
 static int set_hwparams(snd_pcm_t *handle,
@@ -279,12 +278,8 @@ void receiveInput() {
       }
     }
 
-    if(sampleRate > 42000 && sampleRate < 45000) {
-      if(streamReady) {
-        fprintf(stderr, " -> new sample rate: %d", (uint32_t)sampleRate);
-      } else {
-        fprintf(stderr, " Stream is not ready, yet.");
-      }
+    if(sampleRate > 41000 && sampleRate < 45000) {
+      fprintf(stderr, " -> new sample rate: %d", (uint32_t)sampleRate);
     }
 
     fprintf(stderr, "\n");
