@@ -312,10 +312,10 @@ void writeAudio() {
   }
 
   if(samplesTooMuch > 1) {
-    ++requested;
+    --requested;
     --samplesTooMuch;
   } else if(samplesTooMuch < -1) {
-    --requested;
+    ++requested;
     ++samplesTooMuch;
   }
 
