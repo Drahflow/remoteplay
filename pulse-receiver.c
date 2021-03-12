@@ -20,12 +20,12 @@
 int BUFFER_SIZE = 400;
 
 int running;
-float initialSampleRate = 44100;
-float sampleRate;
-float sampleRateBlend = 0.0005;
+float sampleRate = 44100;
 float localPositionAvg;
-float localPositionBlend = 0.05;
+float localPositionBlend = 0.0002;
+int32_t samplesTooMuch = 0;
 
+uint64_t maximumDrift = 4;
 double targetLatency = 0.05;  // in s
 uint64_t senderOffset; // incoming packet offset which would start at audioBuffer[0]
 char audioBuffer[120000];
@@ -137,8 +137,7 @@ void receiveInput() {
 
     int dataLen = packet->length - sizeof(*packet) + sizeof(packet->data);
     int64_t localPosition = packet->position - senderOffset;
-
-    fprintf(stderr, "Packet for: +%lfs, buf pos: %lld", packetToPlayIn, (long long int)localPosition);
+    int64_t desiredLocalPosition = 4 * sampleRate * targetLatency;
 
     if(packetToPlayIn < 0) {
       fprintf(stderr, "Packet arrived too late.\n");
@@ -146,51 +145,33 @@ void receiveInput() {
       fprintf(stderr, "Playback is too far ahead.\n");
 
       failureSound(audioBuffer, sizeof(audioBuffer));
-      senderOffset = packet->position - frameAlign(sampleRate * targetLatency);
+      senderOffset = packet->position - frameAlign(desiredLocalPosition);
       localPositionAvg = localPosition = packet->position - senderOffset;
-      sampleRate = initialSampleRate;
     } else if(localPosition + dataLen > (int)sizeof(audioBuffer)) {
       fprintf(stderr, "Playback is too far behind.\n");
 
       failureSound(audioBuffer, sizeof(audioBuffer));
-      senderOffset = packet->position - frameAlign(sampleRate * targetLatency);
+      senderOffset = packet->position - frameAlign(desiredLocalPosition);
       localPositionAvg = localPosition = packet->position - senderOffset;
-      sampleRate = initialSampleRate;
     } else {
       memcpy(audioBuffer + localPosition, packet->data, dataLen);
 
-      float onTargetSampleRate = localPosition / packetToPlayIn;
-
       localPositionAvg = (1 - localPositionBlend) * localPositionAvg + localPositionBlend * localPosition;
-
-      fprintf(stderr, ", pkg sample rate %f", onTargetSampleRate);
-
-      float newSampleRate = (1 - sampleRateBlend) * sampleRate + sampleRateBlend * onTargetSampleRate;
-
-      if(newSampleRate < sampleRate && localPosition < localPositionAvg) {
-        sampleRate = newSampleRate;
-      } else if(newSampleRate > sampleRate && localPosition > localPositionAvg) {
-        sampleRate = newSampleRate;
-      }
     }
 
-    if(sampleRate > 43000 && sampleRate < 45000) {
-      if(streamReady) {
-        fprintf(stderr, " -> new sample rate: %d", (uint32_t)sampleRate);
-        pa_operation *op = pa_stream_update_sample_rate(stream, sampleRate, NULL, NULL);
-        if(op) {
-          pa_operation_unref(op);
-        }
-      } else {
-        fprintf(stderr, " Stream is not ready, yet.");
-      }
-    }
-
-    fprintf(stderr, "\n");
+    fprintf(stderr, "Packet for: +%lfs, buf pos: %lld, avg %f, delta %d\n", packetToPlayIn, (long long int)localPosition, localPositionAvg, samplesTooMuch);
 
     uint64_t shift = packet->length;
     memmove(receiveBuffer, receiveBuffer + shift, receivePos - shift);
     receivePos -= shift;
+
+    if(localPositionAvg > desiredLocalPosition + maximumDrift) {
+      samplesTooMuch = frameAlign(localPositionAvg - desiredLocalPosition);
+      localPositionAvg = (0.1 * desiredLocalPosition + 0.9 * localPositionAvg);
+    } else if(localPositionAvg < desiredLocalPosition - maximumDrift) {
+      samplesTooMuch = frameAlign(localPositionAvg - desiredLocalPosition);
+      localPositionAvg = (0.1 * desiredLocalPosition + 0.9 * localPositionAvg);
+    }
   }
 }
 
@@ -208,6 +189,16 @@ void writeAudio() {
     fprintf(stderr, "Could not write to pulseaudio stream: %s\n", pa_strerror(pa_context_errno(ctx)));
     return;
   }
+
+  if(samplesTooMuch > 1) {
+    requested += samplesTooMuch;
+    samplesTooMuch = 0;
+  } else if(samplesTooMuch < -1) {
+    requested += samplesTooMuch;
+    samplesTooMuch = 0;
+  }
+
+  if(requested > (int)sizeof(audioBuffer) / 4) requested = sizeof(audioBuffer) / 4;
 
   memmove(audioBuffer, audioBuffer + requested, sizeof(audioBuffer) - requested);
   failureSound(audioBuffer + sizeof(audioBuffer) - requested, requested);
@@ -228,7 +219,6 @@ int main(int argc, char **argv) {
   fprintf(stderr, "Target latency: %f\n", targetLatency);
 
   senderOffset = -1ull << 62;
-  sampleRate = initialSampleRate;
 
   pa_mainloop *mainloop = pa_mainloop_new();
   if(!mainloop) {
