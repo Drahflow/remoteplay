@@ -2,6 +2,7 @@
 
 #define __USE_BSD
 #define __USE_POSIX199309
+#define __USE_MISC
 #define _POSIX_C_SOURCE
 
 #include <stdio.h>
@@ -294,10 +295,11 @@ void receiveInput() {
   }
 }
 
+float samplesTooMuch = 0;
+
 void writeAudio() {
   int requested = periodSize;
 
-  fprintf(stderr, "writing %d frames", requested);
   int err = snd_pcm_writei(handle, audioBuffer, requested);
   if(err == -EAGAIN) return;
   if(err < 0) {
@@ -312,6 +314,9 @@ void writeAudio() {
   memmove(audioBuffer, audioBuffer + requested * 4, sizeof(audioBuffer) - requested * 4);
   failureSound(audioBuffer + sizeof(audioBuffer) - requested, requested);
   senderOffset += requested * 4;
+
+  samplesTooMuch += 44100.0 / sampleRate * requested;
+  fprintf(stderr, "Sample error: %f\n", samplesTooMuch);
 
   // printf("Played %lld samples.\n", (long long int)requested);
 }
