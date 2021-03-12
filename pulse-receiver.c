@@ -28,7 +28,7 @@ float localPositionBlend = 0.05;
 
 double targetLatency = 0.05;  // in s
 uint64_t senderOffset; // incoming packet offset which would start at audioBuffer[0]
-char audioBuffer[64000];
+char audioBuffer[120000];
 
 char receiveBuffer[8000];
 uint64_t receivePos = 0;
