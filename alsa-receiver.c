@@ -311,6 +311,12 @@ void writeAudio() {
       return;
   }
 
+  if(samplesTooMuch > 1) {
+    ++requested;
+  } else if(samplesTooMuch < -1) {
+    --requested;
+  }
+
   memmove(audioBuffer, audioBuffer + requested * 4, sizeof(audioBuffer) - requested * 4);
   failureSound(audioBuffer + sizeof(audioBuffer) - requested, requested);
   senderOffset += requested * 4;
