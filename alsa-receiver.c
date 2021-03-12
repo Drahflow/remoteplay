@@ -114,7 +114,7 @@ static int set_hwparams(snd_pcm_t *handle,
     }
     fprintf(stderr, "Buffer size is %lu\n", size);
 
-    unsigned int period_time = 10;
+    unsigned int period_time = 500;
     /* set the period time */
     err = snd_pcm_hw_params_set_period_time_near(handle, params, &period_time, &dir);
     if (err < 0) {
