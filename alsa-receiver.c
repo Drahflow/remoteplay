@@ -23,8 +23,10 @@ snd_pcm_t *handle;
 snd_pcm_hw_params_t *hwparams;
 snd_pcm_sw_params_t *swparams;
 snd_pcm_channel_area_t *areas;
+snd_output_t *output = NULL;
+unsigned int periodSize;
 
-char *alsaDevice = "default";
+char *alsaDevice = "hw:0,0";
 
 int running;
 float initialSampleRate = 44100;
@@ -35,7 +37,7 @@ float localPositionBlend = 0.05;
 
 double targetLatency = 0.05;  // in s
 uint64_t senderOffset; // incoming packet offset which would start at audioBuffer[0]
-char audioBuffer[8000];
+char audioBuffer[32000];
 
 char receiveBuffer[8000];
 uint64_t receivePos = 0;
@@ -49,7 +51,7 @@ static int set_hwparams(snd_pcm_t *handle,
 {
     unsigned int channels = 2;
     unsigned int rate = 44100;
-    unsigned int format = SND_PCM_FORMAT_S16;
+    unsigned int format = SND_PCM_FORMAT_S16_LE;
     unsigned int resample = 0;
 
     snd_pcm_uframes_t size;
@@ -97,7 +99,7 @@ static int set_hwparams(snd_pcm_t *handle,
         return -EINVAL;
     }
 
-    unsigned int buffer_time = 500;
+    unsigned int buffer_time = 500000;
     /* set the buffer time */
     err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, &dir);
     if (err < 0) {
@@ -109,6 +111,7 @@ static int set_hwparams(snd_pcm_t *handle,
         printf("Unable to get buffer size for playback: %s\n", snd_strerror(err));
         return err;
     }
+    fprintf(stderr, "Buffer size is %lu\n", size);
 
     unsigned int period_time = 500;
     /* set the period time */
@@ -122,6 +125,8 @@ static int set_hwparams(snd_pcm_t *handle,
         printf("Unable to get period size for playback: %s\n", snd_strerror(err));
         return err;
     }
+    fprintf(stderr, "Period size: %lu\n", size);
+    periodSize = size;
     /* write the parameters to device */
     err = snd_pcm_hw_params(handle, params);
     if (err < 0) {
@@ -141,14 +146,14 @@ static int set_swparams(snd_pcm_t *handle, snd_pcm_sw_params_t *swparams)
     }
     /* start the transfer when the buffer is almost full: */
     /* (buffer_size / avail_min) * avail_min */
-    err = snd_pcm_sw_params_set_start_threshold(handle, swparams, MIN_WRITE_SIZE * 2);
+    err = snd_pcm_sw_params_set_start_threshold(handle, swparams, periodSize * 2);
     if (err < 0) {
         printf("Unable to set start threshold mode for playback: %s\n", snd_strerror(err));
         return err;
     }
     /* allow the transfer when at least period_size samples can be processed */
     /* or disable this mechanism when period event is enabled (aka interrupt like style processing) */
-    err = snd_pcm_sw_params_set_avail_min(handle, swparams, MIN_WRITE_SIZE);
+    err = snd_pcm_sw_params_set_avail_min(handle, swparams, periodSize);
     if (err < 0) {
         printf("Unable to set avail min for playback: %s\n", snd_strerror(err));
         return err;
@@ -290,12 +295,13 @@ void receiveInput() {
 }
 
 void writeAudio() {
-  int requested = 128;
-  int err = 0;
+  int requested = periodSize;
 
-  int len = snd_pcm_writei(handle, audioBuffer, requested);
-  if(len == -EAGAIN) return;
-  if(len < 0) {
+  fprintf(stderr, "writing %d frames", requested);
+  int err = snd_pcm_writei(handle, audioBuffer, requested);
+  if(err == -EAGAIN) return;
+  if(err < 0) {
+      fprintf(stderr, "Err: %s\n", snd_strerror(err));
       if(xrun_recovery(handle, err) < 0) {
           printf("Write error: %s\n", snd_strerror(err));
           exit(EXIT_FAILURE);
@@ -343,6 +349,12 @@ int main(int argc, char **argv) {
       exit(EXIT_FAILURE);
   }
 
+  err = snd_output_stdio_attach(&output, stdout, 0);
+  if (err < 0) {
+      printf("Output failed: %s\n", snd_strerror(err));
+      return 0;
+  }
+  snd_pcm_dump(handle, output);
   if(fcntl(0, F_SETFL, O_NONBLOCK)) {
     fprintf(stderr, "Could not enable non-blocking mode for stdin: %s\n", strerror(errno));
     return 1;
@@ -354,7 +366,7 @@ int main(int argc, char **argv) {
     writeAudio();
     receiveInput();
 
-    usleep(50);
+    usleep(5);
   }
 
   snd_pcm_close(handle);
