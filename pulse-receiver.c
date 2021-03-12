@@ -79,7 +79,7 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
   if(state != PA_CONTEXT_READY) return;
 
   pa_sample_spec sample_spec;
-  sample_spec.format = PA_SAMPLE_S16BE;
+  sample_spec.format = PA_SAMPLE_S16LE;
   sample_spec.channels = 2;
   sample_spec.rate = sampleRate;
 
@@ -104,6 +104,10 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
     running = 0;
     return;
   }
+}
+
+int frameAlign(float f) {
+  return ((int)f) / 4 * 4;
 }
 
 void receiveInput() {
@@ -142,14 +146,14 @@ void receiveInput() {
       fprintf(stderr, "Playback is too far ahead.\n");
 
       failureSound(audioBuffer, sizeof(audioBuffer));
-      senderOffset = packet->position - sizeof(audioBuffer) / sampleRate * targetLatency;
+      senderOffset = packet->position - frameAlign(sampleRate * targetLatency);
       localPositionAvg = localPosition = packet->position - senderOffset;
       sampleRate = initialSampleRate;
     } else if(localPosition + dataLen > (int)sizeof(audioBuffer)) {
       fprintf(stderr, "Playback is too far behind.\n");
 
       failureSound(audioBuffer, sizeof(audioBuffer));
-      senderOffset = packet->position - sizeof(audioBuffer) / sampleRate * targetLatency;
+      senderOffset = packet->position - frameAlign(sampleRate * targetLatency);
       localPositionAvg = localPosition = packet->position - senderOffset;
       sampleRate = initialSampleRate;
     } else {

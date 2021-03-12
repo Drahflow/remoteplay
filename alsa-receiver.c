@@ -32,7 +32,7 @@ char *alsaDevice = "hw:0,0";
 int running;
 float initialSampleRate = 44000;
 float sampleRate;
-float sampleRateBlend = 0.0005;
+float sampleRateBlend = 0.00005;
 float localPositionAvg;
 float localPositionBlend = 0.05;
 
@@ -99,7 +99,7 @@ static int set_hwparams(snd_pcm_t *handle,
         return -EINVAL;
     }
 
-    unsigned int buffer_time = 500000;
+    unsigned int buffer_time = 5000;
     /* set the buffer time */
     err = snd_pcm_hw_params_set_buffer_time_near(handle, params, &buffer_time, &dir);
     if (err < 0) {
@@ -214,6 +214,10 @@ void failureSound(char *bufferPos, size_t len) {
   }
 }
 
+int frameAlign(float f) {
+  return ((int)f) / 4 * 4;
+}
+
 void receiveInput() {
   while(1) {
     int len = read(0, receiveBuffer + receivePos, sizeof(receiveBuffer) - receivePos);
@@ -250,14 +254,14 @@ void receiveInput() {
       fprintf(stderr, "Playback is too far ahead.\n");
 
       failureSound(audioBuffer, sizeof(audioBuffer));
-      senderOffset = packet->position - sizeof(audioBuffer) / sampleRate * targetLatency;
+      senderOffset = packet->position - frameAlign(sampleRate * targetLatency);
       localPositionAvg = localPosition = packet->position - senderOffset;
       sampleRate = initialSampleRate;
     } else if(localPosition + dataLen > (int)sizeof(audioBuffer)) {
       fprintf(stderr, "Playback is too far behind.\n");
 
       failureSound(audioBuffer, sizeof(audioBuffer));
-      senderOffset = packet->position - sizeof(audioBuffer) / sampleRate * targetLatency;
+      senderOffset = packet->position - frameAlign(sampleRate * targetLatency);
       localPositionAvg = localPosition = packet->position - senderOffset;
       sampleRate = initialSampleRate;
     } else {
@@ -322,7 +326,7 @@ void writeAudio() {
   senderOffset += requested * 4;
 
   samplesTooMuch += sampleRate / 44100 * requested - requested;
-  fprintf(stderr, "Sample error: %f (rate %f)\n", samplesTooMuch, sampleRate);
+  // fprintf(stderr, "Sample error: %f (rate %f)\n", samplesTooMuch, sampleRate);
 
   // printf("Played %lld samples.\n", (long long int)requested);
 }
@@ -377,7 +381,7 @@ int main(int argc, char **argv) {
     writeAudio();
     receiveInput();
 
-    usleep(5);
+    usleep(1);
   }
 
   snd_pcm_close(handle);

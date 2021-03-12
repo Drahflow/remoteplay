@@ -1,5 +1,9 @@
 #include "common.h"
 
+#define __USE_BSD
+#define __USE_POSIX199309
+#define __USE_XOPEN_EXTENDED
+
 #include <pulse/pulseaudio.h>
 #include <stdio.h>
 #include <time.h>
@@ -64,7 +68,7 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
   if(state != PA_CONTEXT_READY) return;
 
   pa_sample_spec sample_spec;
-  sample_spec.format = PA_SAMPLE_S16BE;
+  sample_spec.format = PA_SAMPLE_S16LE;
   sample_spec.channels = 2;
   sample_spec.rate = 44100;
 
