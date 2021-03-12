@@ -325,7 +325,7 @@ void writeAudio() {
   senderOffset += requested * 4;
 
   samplesTooMuch += 44100.0 / sampleRate * requested - requested;
-  fprintf(stderr, "Sample error: %f\n", samplesTooMuch);
+  fprintf(stderr, "Sample error: %f (rate %f)\n", samplesTooMuch, sampleRate);
 
   // printf("Played %lld samples.\n", (long long int)requested);
 }
