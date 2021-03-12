@@ -318,7 +318,7 @@ void writeAudio() {
   }
 
   if(requested < 0) requested = 0;
-  if(requested > sizeof(audioBuffer) / 4) requested = sizeof(audioBuffer) / 4;
+  if(requested > (int)sizeof(audioBuffer) / 4) requested = sizeof(audioBuffer) / 4;
 
   memmove(audioBuffer, audioBuffer + requested * 4, sizeof(audioBuffer) - requested * 4);
   failureSound(audioBuffer + sizeof(audioBuffer) - requested, requested);
