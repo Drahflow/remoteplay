@@ -42,6 +42,8 @@ char audioBuffer[32000];
 
 char receiveBuffer[8000];
 uint64_t receivePos = 0;
+int debugRate = 256;
+int debugCounter = 0;
 
 int beepOnFailure = 0;
 
@@ -267,7 +269,10 @@ void receiveInput() {
       localPositionAvg = (1 - localPositionBlend) * localPositionAvg + localPositionBlend * localPosition;
     }
 
-    fprintf(stderr, "Packet for: +%lfs, buf pos: %lld, avg %f, delta %d\n", packetToPlayIn, (long long int)localPosition, localPositionAvg, samplesTooMuch);
+    if(++debugCounter > debugRate) {
+      fprintf(stderr, "Packet for: +%lfs, buf pos: %lld, avg %f, delta %d\n", packetToPlayIn, (long long int)localPosition, localPositionAvg, samplesTooMuch);
+      debugCounter = 0;
+    }
 
     uint64_t shift = packet->length;
     memmove(receiveBuffer, receiveBuffer + shift, receivePos - shift);
