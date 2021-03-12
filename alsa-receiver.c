@@ -312,10 +312,13 @@ void writeAudio() {
   }
 
   if(samplesTooMuch > 1) {
-    ++requested;
+    requested += samplesTooMuch;
   } else if(samplesTooMuch < -1) {
-    --requested;
+    requested -= samplesTooMuch;
   }
+
+  if(requested < 0) requested = 0;
+  if(requested > sizeof(audioBuffer) / 4) requested = sizeof(audioBuffer) / 4;
 
   memmove(audioBuffer, audioBuffer + requested * 4, sizeof(audioBuffer) - requested * 4);
   failureSound(audioBuffer + sizeof(audioBuffer) - requested, requested);
