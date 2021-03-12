@@ -79,7 +79,7 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
   if(state != PA_CONTEXT_READY) return;
 
   pa_sample_spec sample_spec;
-  sample_spec.format = PA_SAMPLE_S16LE;
+  sample_spec.format = PA_SAMPLE_S16BE;
   sample_spec.channels = 2;
   sample_spec.rate = sampleRate;
 
@@ -170,7 +170,7 @@ void receiveInput() {
       }
     }
 
-    if(sampleRate > 7500 && sampleRate < 8500) {
+    if(sampleRate > 43000 && sampleRate < 45000) {
       if(streamReady) {
         fprintf(stderr, " -> new sample rate: %d", (uint32_t)sampleRate);
         pa_operation *op = pa_stream_update_sample_rate(stream, sampleRate, NULL, NULL);

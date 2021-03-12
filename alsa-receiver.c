@@ -279,7 +279,7 @@ void receiveInput() {
       }
     }
 
-    if(sampleRate > 7500 && sampleRate < 8500) {
+    if(sampleRate > 42000 && sampleRate < 45000) {
       if(streamReady) {
         fprintf(stderr, " -> new sample rate: %d", (uint32_t)sampleRate);
       } else {
