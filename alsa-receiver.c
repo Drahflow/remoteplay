@@ -30,7 +30,7 @@ unsigned int periodSize;
 char *alsaDevice = "hw:0,0";
 
 int running;
-float initialSampleRate = 44100;
+float initialSampleRate = 44000;
 float sampleRate;
 float sampleRateBlend = 0.0005;
 float localPositionAvg;
