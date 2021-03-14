@@ -24,6 +24,8 @@ pa_context *ctx;
 pa_stream *stream;
 uint64_t position;
 
+char *pulseaudioName = "unnamed";
+
 void streamStateChanged(pa_stream *IGN(stream), void *IGN(userdata)) {
   pa_stream_state_t state = pa_context_get_state(ctx);
   fprintf(stderr, "pulseaudio stream state changed: %d\n", state);
@@ -72,7 +74,7 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
   sample_spec.channels = 2;
   sample_spec.rate = 44100;
 
-  stream = pa_stream_new(ctx, "remoteplay-sender", &sample_spec, NULL);
+  stream = pa_stream_new(ctx, pulseaudioName, &sample_spec, NULL);
   if(!stream) {
     fprintf(stderr, "Failed to create pulseaudio stream: %s\n", pa_strerror(pa_context_errno(ctx)));
     running = 0;
@@ -94,12 +96,14 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
 }
 
 int main(int argc, char **argv) {
-  if(argc != 1) {
-    fprintf(stderr, "Usage: ./pulse-sender\n");
+  if(argc != 1 && argc != 2) {
+    fprintf(stderr, "Usage: ./pulse-sender [name]\n");
     return 1;
   }
 
-  argv = argv;
+  if(argc == 2) {
+    pulseaudioName = argv[1];
+  }
 
   position = 0;
 
