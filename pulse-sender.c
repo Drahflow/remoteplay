@@ -74,7 +74,7 @@ void contextStateChanged(pa_context *IGN(ctx), void *IGN(userdata)) {
   sample_spec.channels = 2;
   sample_spec.rate = 44100;
 
-  stream = pa_stream_new(ctx, pulseaudioName, &sample_spec, NULL);
+  stream = pa_stream_new(ctx, "forwarding", &sample_spec, NULL);
   if(!stream) {
     fprintf(stderr, "Failed to create pulseaudio stream: %s\n", pa_strerror(pa_context_errno(ctx)));
     running = 0;
@@ -113,9 +113,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  char nameBuf[1024];
+  snprintf(nameBuf, 1024, "Remoteplay to %s", pulseaudioName);
+  nameBuf[sizeof(nameBuf) - 1] = '\0';
+
   ctx = pa_context_new(
     pa_mainloop_get_api(mainloop),
-    "Remoteplay"
+    nameBuf
   );
   if(!ctx) {
     fprintf(stderr, "Failed to get pulseaudio context.\n");
