@@ -35,6 +35,8 @@ uint64_t receivePos = 0;
 int debugRate = 256;
 int debugCounter = 0;
 
+char *pulseaudioName = "unnamed";
+
 pa_context *ctx;
 pa_stream *stream;
 
@@ -214,14 +216,18 @@ void writeAudio() {
 
 int main(int argc, char **argv) {
   if(argc != 2 && argc != 3) {
-    fprintf(stderr, "Usage: ./pulse-receiver [target latency]\n");
+    fprintf(stderr, "Usage: ./pulse-receiver [target latency] [name]\n");
     return 1;
   }
 
-  if(argc == 2) {
+  if(argc >= 2) {
     targetLatency = atof(argv[1]);
   }
   fprintf(stderr, "Target latency: %f\n", targetLatency);
+
+  if(argc == 3) {
+    pulseaudioName = argv[2];
+  }
 
   senderOffset = -1ull << 62;
 
@@ -231,9 +237,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  char nameBuf[1024];
+  snprintf(nameBuf, 1024, "Remoteplay on %s", pulseaudioName);
+  nameBuf[sizeof(nameBuf) - 1] = '\0';
+
   ctx = pa_context_new(
     pa_mainloop_get_api(mainloop),
-    "Remoteplay"
+    nameBuf
   );
   if(!ctx) {
     fprintf(stderr, "Failed to get pulseaudio context.\n");
